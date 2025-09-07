@@ -14,15 +14,25 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# MongoDB connection
+# MongoDB connection with retry logic
+def get_database():
+    try:
+        client = MongoClient(os.getenv('MONGO_URI'),
+                           serverSelectionTimeoutMS=5000,
+                           connectTimeoutMS=5000,
+                           retryWrites=True)
+        # Send a ping to confirm a successful connection
+        client.admin.command('ping')
+        print("Successfully connected to MongoDB!")
+        return client['todo_db']
+    except Exception as e:
+        print(f"Error connecting to MongoDB: {e}")
+        raise
+
 try:
-    client = MongoClient(os.getenv('MONGO_URI'))
-    # Send a ping to confirm a successful connection
-    client.admin.command('ping')
-    print("Pinged your deployment. You successfully connected to MongoDB!")
-    db = client['todo_db']
+    db = get_database()
 except Exception as e:
-    print(f"Error connecting to MongoDB: {e}")
+    print(f"Failed to initialize database: {e}")
     raise
 
 class User(UserMixin):
