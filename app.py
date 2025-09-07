@@ -2,6 +2,14 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
 from functools import wraps
+from pymongo import MongoClient
+from bson import ObjectId
+import os
+from dotenv import load_dotenv
+from datetime import datetime
+
+# Load environment variables
+load_dotenv()
 from pymongo.mongo_client import MongoClient
 from bson import ObjectId
 from dotenv import load_dotenv
@@ -9,31 +17,39 @@ import os
 
 load_dotenv()
 
+# Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
+
+# Initialize extensions
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# MongoDB connection with retry logic
-def get_database():
-    try:
-        client = MongoClient(os.getenv('MONGO_URI'),
-                           serverSelectionTimeoutMS=5000,
-                           connectTimeoutMS=5000,
-                           retryWrites=True)
-        # Send a ping to confirm a successful connection
-        client.admin.command('ping')
-        print("Successfully connected to MongoDB!")
-        return client['todo_db']
-    except Exception as e:
-        print(f"Error connecting to MongoDB: {e}")
-        raise
+# User class must be defined before database connection
+class User(UserMixin):
+    def __init__(self, user_data):
+        self.id = str(user_data['_id'])
+        self.username = user_data['username']
+        self.role = user_data.get('role', 'user')
 
+    def is_admin(self):
+        return self.role == 'admin'
+
+@login_manager.user_loader
+def load_user(user_id):
+    user_data = db.users.find_one({'_id': ObjectId(user_id)})
+    return User(user_data) if user_data else None
+
+# MongoDB connection
 try:
-    db = get_database()
+    client = MongoClient(os.getenv('MONGO_URI'))
+    db = client['todo_db']
+    # Test the connection
+    client.admin.command('ping')
+    print("Successfully connected to MongoDB!")
 except Exception as e:
-    print(f"Failed to initialize database: {e}")
+    print(f"Error connecting to MongoDB: {e}")
     raise
 
 class User(UserMixin):
@@ -53,29 +69,38 @@ def load_user(user_id):
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        role = request.form['role']
-        
+        username = request.form.get('username')
+        password = request.form.get('password')
+        role = request.form.get('role', 'user')
+
+        # Basic validation
+        if not username or not password:
+            flash('Username and password are required')
+            return redirect(url_for('signup'))
+
+        # Check if username exists
         if db.users.find_one({'username': username}):
             flash('Username already exists')
             return redirect(url_for('signup'))
-        
-        # Only allow admin creation if no admin exists
-        if role == 'admin' and db.users.find_one({'role': 'admin'}):
-            if not current_user.is_authenticated or not current_user.is_admin():
-                flash('Admin already exists')
-                return redirect(url_for('signup'))
-        
+
+        # First user gets admin role
+        if db.users.count_documents({}) == 0:
+            role = 'admin'
+
+        # Hash password and create user
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        user_id = db.users.insert_one({
+        db.users.insert_one({
             'username': username,
             'password': hashed_password,
             'role': role
-        }).inserted_id
-        
+        })
+
+        flash('Account created successfully! Please login.')
         return redirect(url_for('login'))
-    return render_template('signup.html')
+
+    # For GET request
+    is_first_user = db.users.count_documents({}) == 0
+    return render_template('signup.html', is_first_user=is_first_user)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
