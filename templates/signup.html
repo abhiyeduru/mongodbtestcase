@@ -3,17 +3,27 @@
 {% block title %}Signup{% endblock %}
 
 {% block content %}
-<div class="auth-form">
-    <h2>Signup</h2>
+{% extends "base.html" %}
+{% block content %}
+    <h2>Sign Up</h2>
     <form method="POST">
-        <div class="form-group">
-            <input type="text" name="username" class="form-control" placeholder="Username" required>
+        <div>
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
         </div>
-        <div class="form-group">
-            <input type="password" name="password" class="form-control" placeholder="Password" required>
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
         </div>
-        <button type="submit" class="btn btn-primary">Signup</button>
+        <div>
+            <label for="role">Role:</label>
+            <select id="role" name="role" required>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <button type="submit">Sign Up</button>
     </form>
-    <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
-</div>
+    <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+{% endblock %}
 {% endblock %}
