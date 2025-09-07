@@ -109,8 +109,9 @@ def delete_task(task_id):
     return redirect(url_for('todo'))
 
 if __name__ == '__main__':
+    # Default port is 5000 if PORT env var is not set
     port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 if __name__ == '__main__':
     app.run(debug=True)
