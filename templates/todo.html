@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Todo Dashboard{% endblock %}
+
+{% block content %}
+<div class="todo-dashboard">
+    <div class="header">
+        <h2>Welcome, {{ current_user.username }}</h2>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+    </div>
+
+    <form method="POST" action="{{ url_for('add_task') }}" class="task-form">
+        <div class="input-group">
+            <input type="text" name="task" class="form-control" placeholder="New task..." required>
+            <button type="submit" class="btn btn-primary">Add Task</button>
+        </div>
+    </form>
+
+    <div class="tasks-list">
+        {% for task in tasks %}
+        <div class="task-item">
+            <span>{{ task.task }}</span>
+            <a href="{{ url_for('delete_task', task_id=task._id) }}" class="btn btn-danger btn-sm">Delete</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

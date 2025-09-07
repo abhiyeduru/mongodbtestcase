@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Signup{% endblock %}
+
+{% block content %}
+<div class="auth-form">
+    <h2>Signup</h2>
+    <form method="POST">
+        <div class="form-group">
+            <input type="text" name="username" class="form-control" placeholder="Username" required>
+        </div>
+        <div class="form-group">
+            <input type="password" name="password" class="form-control" placeholder="Password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Signup</button>
+    </form>
+    <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+</div>
+{% endblock %}
